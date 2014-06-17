@@ -1,5 +1,5 @@
 # keyword-brunch 1.7
-* __1.7.3__ (2014-06-17)
+* __1.7.4__ (2014-06-17)
 	* Making a sync version of the whole plugin since Brunch `onCompile` is not yet async
 
 * __1.7.2__ (2013-11-03)
