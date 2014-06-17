@@ -1,4 +1,8 @@
 # keyword-brunch 1.7
+* __1.7.5__ (2014-06-17)
+	* Rewrote the tests using CoffeeScript and added better tests
+	* Fixed errors
+
 * __1.7.4__ (2014-06-17)
 	* Making a sync version of the whole plugin since Brunch `onCompile` is not yet async
 
