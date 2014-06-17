@@ -1,4 +1,7 @@
-# keyword-brunch 1.7.0
+# keyword-brunch 1.7
+* __1.7.3__ (2014-06-17)
+	* Making a sync version of the whole plugin since Brunch `onCompile` is not yet async
+
 * __1.7.2__ (2013-11-03)
 	* Removed the dependency to node-ffi
 
@@ -12,6 +15,6 @@
     * Updated LICENSE and README
     * Added unit tests
 
-# keyword-brunch 1.4.0
+# keyword-brunch 1.4
 * __1.4.0__ (2012-09-13)
     * Release existing in the original repository
