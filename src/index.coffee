@@ -4,6 +4,7 @@ RegExp.quote = require 'regexp-quote'
 
 
 class KeywordProcessor
+  @instance: null
   brunchPlugin: yes
   globalRE: null
   globalMap: null
