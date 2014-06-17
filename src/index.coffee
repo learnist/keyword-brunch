@@ -87,7 +87,7 @@ class KeywordProcessor
       for file in fs.readdirSync(path)
         fullPath = sysPath.join path, file
         if fs.statSync(fullPath).isDirectory()
-          res = res.concat readdirRecursiveSync(fullPath, filterFunc)
+          res = res.concat @readdirRecursiveSync(fullPath, filterFunc)
         else if filterFunc(file, path)
           res.push fullPath
       res
