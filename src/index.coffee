@@ -3,12 +3,13 @@ sysPath = require 'path'
 RegExp.quote = require 'regexp-quote'
 
 
-module.exports = SELF = class KeywordProcesser
+class KeywordProcessor
   brunchPlugin: yes
   globalRE: null
   globalMap: null
   packageInfoFilePath: "package.json"
   lastCompileDate: null
+  lastCompileResult: null
 
   generateDefaultMap: (compilationDate = new Date()) ->
     map = {}
@@ -25,6 +26,7 @@ module.exports = SELF = class KeywordProcesser
     map
 
   constructor: (@config = {}) ->
+    KeywordProcessor.instance = @
     return unless @config.keyword
     path = sysPath.resolve(@config.paths?.public ? 'public')
     if (pip = @config.keyword?.jsonPackageFilePath)
@@ -73,6 +75,24 @@ module.exports = SELF = class KeywordProcesser
           check yes
     readOneDir folder
 
+
+  readdirRecursiveSync: (path, filterFunc = -> yes) ->
+    unless fs.statSync(path).isDirectory()
+      if filterFunc(fs.basename(path), fs.dirname(path))
+        [path]
+      else
+        []
+    else
+      res = []
+      for file in fs.readdirSync(path)
+        fullPath = sysPath.join path, file
+        if fs.statSync(fullPath).isDirectory()
+          res = res.concat readdirRecursiveSync(fullPath, filterFunc)
+        else if filterFunc(file, path)
+          res.push fullPath
+      res
+
+
   computeUniqueFileList: (list, callback) ->
     todo = list.length
     doneCalled = no
@@ -116,6 +136,13 @@ module.exports = SELF = class KeywordProcesser
     check no
 
 
+  computeUniqueFileListSync: (list) ->
+    filesList = []
+    for item in list
+      filesList.push @readdirRecursiveSync(item, (file, path) -> filesList.indexOf(sysPath.join path, file) is -1)...
+    filesList
+
+
 
   processFiles: (fileList, callback) ->
     todo = 0
@@ -145,6 +172,12 @@ module.exports = SELF = class KeywordProcesser
             processed["#{file}"] = count
             check yes
 
+
+  processFilesSync: (fileList) ->
+    changedFiles = {}
+    for file in @computeUniqueFileListSync(fileList)
+      changedFiles[file] = @processFileSync file
+    changedFiles
 
 
   processFile: (file, callback) ->
@@ -176,6 +209,20 @@ module.exports = SELF = class KeywordProcesser
           done null
       else
         done "File #{file} does not exists."
+
+
+  processFileSync: (file) ->
+    if fs.existsSync(file)
+      count = 0
+      if @filePattern.test(file)
+        content = fs.readFileSync(file).toString().replace @globalRE, (dummy, keyword) =>
+          count++
+          @globalMap[keyword]
+      if count > 0
+        fs.writeFileSync file, content
+      count
+    else
+      throw new Error "File #{file} does not exists."
 
 
   prepareGlobalRegExp: (compileDate = new Date()) ->
@@ -213,7 +260,12 @@ module.exports = SELF = class KeywordProcesser
     list = [@publicPath]
     if (extraFiles = @keywordConfig.extraFiles) and extraFiles.length
       list.push.apply list, extraFiles
-    @processFiles list, callback
+    # waiting for brunch to have its onCompile function async, make the sync call instead
+    #@processFiles list, ((err, result) -> @lasCompileResult = result if result; callback err, result)
+    callback null, (@lastCompileResult = @processFilesSync list)
 
 
 
+
+
+module.exports = KeywordProcessor
