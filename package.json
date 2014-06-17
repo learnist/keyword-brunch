@@ -1,6 +1,6 @@
 {
   "name": "keyword-brunch",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "description": "Adds keyword processing support to brunch.io application packager.",
   "author": "Huafu Gandon <huafu.gandon@gmail.com>",
   "originalAuthor": "bolasblack",
