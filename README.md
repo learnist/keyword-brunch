@@ -11,7 +11,7 @@ If you want the latest repository version, install the plugin by running the fol
 npm install --save "git+ssh://git@github.com:huafu/keyword-brunch.git"
 ```
 
-### Usage in your applicaiton
+### Usage in your application
 Usage:
 
 ```coffeescript
