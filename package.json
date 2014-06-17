@@ -1,6 +1,6 @@
 {
   "name": "keyword-brunch",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "Adds keyword processing support to brunch.io application packager.",
   "author": "Huafu Gandon <huafu.gandon@gmail.com>",
   "homepage": "https://github.com/huafu/keyword-brunch",
@@ -8,10 +8,8 @@
     "type": "git",
     "url": "git@github.com:huafu/keyword-brunch.git"
   },
-  "main": "./lib/index",
+  "main": "./index",
   "scripts": {
-    "prepublish": "rm -rf ./lib && ./node_modules/coffee-script/bin/coffee -o lib/ src/",
-    "postinstall": "rm -rf ./lib && ./node_modules/coffee-script/bin/coffee -o lib/ src/",
     "test": "./node_modules/mocha/bin/mocha --reporter spec --compilers coffee:coffee-script/register --require coffee-script/register --require test/common --colors"
   },
   "engines": {
