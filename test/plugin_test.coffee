@@ -8,9 +8,9 @@ PUBLIC_ROOT = sysPath.resolve 'public'
 PUBLIC_TEMPLATE_ROOT = sysPath.resolve sysPath.join('test', 'public')
 
 FILES =
-  'javascripts/app.js': yes
-  'stylesheets/app.css': no
-  'index.html': yes
+  'javascripts/app.js': 6
+  'stylesheets/app.css': 0
+  'index.html': 7
 
 fileContent = (file, templateFile = no) ->
   path = if templateFile then PUBLIC_TEMPLATE_ROOT else PUBLIC_ROOT
@@ -86,3 +86,10 @@ describe 'Replacing files\' content', ->
       else
         expectedContent = templateContent
       expect(content).to.equal expectedContent
+
+  it 'should produce valid compilation result', ->
+    plugin.onCompile()
+    expected = {}
+    for file, count of FILES
+      expected[sysPath.join PUBLIC_ROOT, file.replace('/', sysPath.sep)] = count
+    expect(plugin.lastCompileResult).to.deep.equal(expected)
