@@ -1,0 +1,22 @@
+
+.name {
+  content: "{!name!}";
+}
+.version {
+  content: "{!version!}";
+}
+.stringKey {
+  content: "{!stringKey!}";
+}
+.functionKey {
+  content: "{!functionKey!}";
+}
+.date {
+  content: "{!date!}";
+}
+.timestamp {
+  content: "{!timestamp!}";
+}
+.dummy {
+  content: "{!dummy!}";
+}

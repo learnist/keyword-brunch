@@ -11,19 +11,6 @@ class KeywordProcessor
   lastCompileDate: null
   lastCompileResult: null
 
-  generateDefaultMap: (compilationDate = new Date()) ->
-    map = {}
-    packageInfo = {}
-    if fs.existsSync(@packageInfoFilePath)
-      packageInfo = JSON.parse fs.readFileSync(@packageInfoFilePath).toString()
-    for keyword in ["version", "name"]
-      if packageInfo[keyword]
-        map[keyword] = packageInfo[keyword]
-      else
-        console.error "Package.json need a #{keyword}"
-    map['date'] = compilationDate.toUTCString()
-    map['timestamp'] = "#{compilationDate.getTime()}"
-    map
 
   constructor: (@config = {}) ->
     KeywordProcessor.instance = @
@@ -31,11 +18,36 @@ class KeywordProcessor
     path = sysPath.resolve(@config.paths?.public ? 'public')
     if (pip = @config.keyword?.jsonPackageFilePath)
       @packageInfoFilePath = pip
-    @packageInfoFilePath = fs.realpathSync(@packageInfoFilePath) if @packageInfoFilePath
+    if @packageInfoFilePath
+      @packageInfoFilePath = fs.realpathSync(@packageInfoFilePath)
     @publicPath = path
-    @keywordConfig = @config.keyword or {}
+    @keywordConfig = @config.keyword
     @filePattern = @keywordConfig.filePattern ? /\.(js|css|html)$/
-    @keywordMap = @keywordConfig.map or {}
+    @keywordMap = @keywordConfig.map ? {}
+
+
+  generateDefaultMap: (compilationDate = new Date()) ->
+    map = {}
+    packageInfo = {}
+    if fs.existsSync(@packageInfoFilePath)
+      packageInfo = JSON.parse fs.readFileSync(@packageInfoFilePath).toString()
+      for keyword in ["version", "name"]
+        if packageInfo[keyword]
+          map[keyword] = packageInfo[keyword]
+        else
+          console.error "#{fs.basename @packageInfoFilePath} need a #{keyword}"
+    map['date'] = @getDateValue compilationDate
+    map['timestamp'] = @getTimestampValue compilationDate
+    map
+
+
+  getDateValue: (compilationDate = @lastCompileDate) ->
+    compilationDate.toUTCString()
+
+
+  getTimestampValue: (compilationDate = @lastCompileDate) ->
+    "#{compilationDate.getTime()}"
+
 
 
   readdirRecursive: (folder, callback) ->
@@ -77,6 +89,8 @@ class KeywordProcessor
 
 
   readdirRecursiveSync: (path, filterFunc = -> yes) ->
+    unless fs.existsSync(path)
+      return []
     unless fs.statSync(path).isDirectory()
       if filterFunc(fs.basename(path), fs.dirname(path))
         [path]
@@ -122,7 +136,7 @@ class KeywordProcessor
               done err
             else
               if stat.isDirectory()
-                @readdirRecursive resolvedPath, (err, files) =>
+                @readdirRecursive resolvedPath, (err, files) ->
                   if err
                     done err
                   else
@@ -138,8 +152,9 @@ class KeywordProcessor
 
   computeUniqueFileListSync: (list) ->
     filesList = []
+    filter = (file, path) -> filesList.indexOf(sysPath.join path, file) is -1
     for item in list
-      filesList.push @readdirRecursiveSync(item, (file, path) -> filesList.indexOf(sysPath.join path, file) is -1)...
+      filesList = filesList.concat @readdirRecursiveSync(item, filter)
     filesList
 
 
@@ -197,7 +212,8 @@ class KeywordProcessor
               done err
             else
               count = 0
-              resultContent = data.toString().replace @globalRE, (dummy, keyword) =>
+              resultContent = data.toString()
+              .replace @globalRE, (dummy, keyword) =>
                 count++
                 @globalMap[keyword]
               if count > 0
@@ -215,7 +231,9 @@ class KeywordProcessor
     if fs.existsSync(file)
       count = 0
       if @filePattern.test(file)
-        content = fs.readFileSync(file).toString().replace @globalRE, (dummy, keyword) =>
+        content = fs.readFileSync(file)
+        .toString()
+        .replace @globalRE, (dummy, keyword) =>
           count++
           @globalMap[keyword]
       if count > 0
@@ -233,20 +251,22 @@ class KeywordProcessor
           replace = processor()
         else
           replace = processor
-        @globalMap[keyword] = replace
+        @globalMap[keyword] = "#{replace}"
     addMap @generateDefaultMap compileDate
     addMap @keywordMap
     keywords = (RegExp.quote(key) for key, replacer of @globalMap)
     @globalRE = RegExp('\\{\\!(' + keywords.join('|') + ')\\!\\}', 'g')
 
 
-  # we have a private version so that we can test in async mode using the callback which isn't
-  # in the function signature of #onCompile in brunch plugin API
+  # we have a private version so that we can test in async mode using the
+  # callback which isn't in the function signature of #onCompile in brunch
+  # plugin API
   onCompile: (generatedFiles) ->
-    @_onCompile generatedFiles
+    if @keywordConfig
+      @_onCompile generatedFiles
 
 
-  _onCompile: (generatedFiles, callback) ->
+  _onCompile: (generatedFiles, callback = ->) ->
     @lastCompileDate = new Date()
     try
       @prepareGlobalRegExp @lastCompileDate
