@@ -9,9 +9,6 @@
     "url": "git@github.com:huafu/keyword-brunch.git"
   },
   "main": "./index",
-  "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --reporter spec --compilers coffee:coffee-script/register --require coffee-script/register --require test/common --colors"
-  },
   "engines": {
     "node": "~0.6.10 || 0.8 || 0.9 || 0.10"
   },
@@ -29,7 +26,7 @@
     "sinon-chai": "^2.5.0"
   },
   "bugs": {
-    "url": "https://github.com/huafu/keyword-brunch/issues"
+    "url": "https://github.com/learnist/keyword-brunch/issues"
   },
   "directories": {
     "test": "test"
