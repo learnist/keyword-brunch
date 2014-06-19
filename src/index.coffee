@@ -7,9 +7,6 @@ class KeywordProcessor
   @instance: null
   brunchPlugin: yes
   globalRE: null
-  globalMap: null
-  packageInfoFilePath: "package.json"
-  lastCompileDate: null
   lastCompileResult: null
 
 
@@ -17,38 +14,10 @@ class KeywordProcessor
     KeywordProcessor.instance = @
     return unless @config.keyword
     path = sysPath.resolve(@config.paths?.public ? 'public')
-    if (pip = @config.keyword?.jsonPackageFilePath)
-      @packageInfoFilePath = pip
-    if @packageInfoFilePath
-      @packageInfoFilePath = fs.realpathSync(@packageInfoFilePath)
     @publicPath = path
     @keywordConfig = @config.keyword
     @filePattern = @keywordConfig.filePattern ? /\.(js|css|html)$/
     @keywordMap = @keywordConfig.map ? {}
-
-
-  generateDefaultMap: (compilationDate = new Date()) ->
-    map = {}
-    packageInfo = {}
-    if fs.existsSync(@packageInfoFilePath)
-      packageInfo = JSON.parse fs.readFileSync(@packageInfoFilePath).toString()
-      for keyword in ["version", "name"]
-        if packageInfo[keyword]
-          map[keyword] = packageInfo[keyword]
-        else
-          console.error "#{fs.basename @packageInfoFilePath} need a #{keyword}"
-    map['date'] = @getDateValue compilationDate
-    map['timestamp'] = @getTimestampValue compilationDate
-    map
-
-
-  getDateValue: (compilationDate = @lastCompileDate) ->
-    compilationDate.toUTCString()
-
-
-  getTimestampValue: (compilationDate = @lastCompileDate) ->
-    "#{compilationDate.getTime()}"
-
 
 
   readdirRecursive: (folder, callback) ->
@@ -214,9 +183,12 @@ class KeywordProcessor
             else
               count = 0
               resultContent = data.toString()
-              .replace @globalRE, (dummy, keyword) =>
+              .replace @globalRE, (dummy, keyword, position) =>
                 count++
-                @globalMap[keyword]
+                if @keywordMap[keyword] instanceof Function
+                  @keywordMap[keyword](count, position)
+                else
+                  @keywordMap[keyword]
               if count > 0
                 fs.writeFile file, resultContent, (err) ->
                   done err, if err then 0 else count
@@ -234,9 +206,12 @@ class KeywordProcessor
       if @filePattern.test(file)
         content = fs.readFileSync(file)
         .toString()
-        .replace @globalRE, (dummy, keyword) =>
+        .replace @globalRE, (dummy, keyword, position) =>
           count++
-          @globalMap[keyword]
+          if @keywordMap[keyword] instanceof Function
+            @keywordMap[keyword](count, position)
+          else
+            @keywordMap[keyword]
       if count > 0
         fs.writeFileSync file, content
       count
@@ -244,19 +219,9 @@ class KeywordProcessor
       throw new Error "File #{file} does not exists."
 
 
-  prepareGlobalRegExp: (compileDate = new Date()) ->
-    @globalMap = {}
-    addMap = (map) =>
-      for keyword, processor of map
-        if processor instanceof Function
-          replace = processor()
-        else
-          replace = processor
-        @globalMap[keyword] = "#{replace}"
-    addMap @generateDefaultMap compileDate
-    addMap @keywordMap
-    keywords = (RegExp.quote(key) for key, replacer of @globalMap)
-    @globalRE = RegExp('\\{\\!(' + keywords.join('|') + ')\\!\\}', 'g')
+  prepareGlobalRegExp: ->
+    keywords = (RegExp.quote(key) for key, replacer of @keywordMap)
+    @globalRE = ///{\!(#{keywords.join('|')})\!}///g
 
 
   # we have a private version so that we can test in async mode using the
@@ -268,9 +233,8 @@ class KeywordProcessor
 
 
   _onCompile: (generatedFiles, callback = ->) ->
-    @lastCompileDate = new Date()
     try
-      @prepareGlobalRegExp @lastCompileDate
+      @prepareGlobalRegExp()
     catch e
       if callback
         callback e, {}
